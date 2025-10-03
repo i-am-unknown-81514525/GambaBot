@@ -110,6 +110,15 @@ wheels = [
 ]
 
 [[package]]
+name = "asqlite"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/c6/8349e97598590d1da0675b7ffbbb1c6293af5e9421d0c8683552e1ccab1b/asqlite-2.0.0.tar.gz", hash = "sha256:97645200037f822c170e7dafa8b8422f85983a36e03060e47dcd932c0e1714a3", size = 9077, upload-time = "2024-06-25T12:15:35.711Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1b/29/bc22327700c07d08894dfcbfb5a82349f533a0190171b3fd2d8b7dc7b8c8/asqlite-2.0.0-py3-none-any.whl", hash = "sha256:271b4206dbab14da93ff191fb03f3166d11d8feec90467653762636810f040b5", size = 8899, upload-time = "2024-06-25T12:15:34.501Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "25.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -650,6 +659,7 @@ version = "0.1.0"
 source = { virtual = "server" }
 dependencies = [
     { name = "aiohttp" },
+    { name = "asqlite" },
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "pyjwt" },
@@ -660,6 +670,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.12.15" },
+    { name = "asqlite", specifier = ">=2.0.0" },
     { name = "cryptography", specifier = ">=46.0.2" },
     { name = "fastapi", specifier = ">=0.118.0" },
     { name = "pyjwt", specifier = ">=2.10.1" },

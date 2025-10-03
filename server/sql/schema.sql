@@ -98,3 +98,13 @@ CREATE TABLE IF NOT EXISTS game_transact(
     user_win BOOLEAN NOT NULL,
     FOREIGN KEY ref_id REFERENCES uni_transact(ref_id)
 );
+
+INSERT INTO holder_entity (id) VALUES (0);
+INSERT INTO user_acc(user_id, holder_id) VALUES (0, 0);
+INSERT INTO account(id, holder_id) VALUES (0, 0);
+INSERT INTO holder_entity (id) VALUES (-1);
+INSERT INTO user_acc(user_id, holder_id) VALUES (-1, -1);
+INSERT INTO account(id, holder_id) VALUES (-1, -1);
+INSERT INTO coin(id, unique_name, read_name) VALUES (0, 'COIN', 'Coin');
+INSERT INTO user_coin(user_id, coin_id, amount) VALUES (0, 0, 21_000_000_000);
+INSERT INTO user_coin(user_id, coin_id, amount) VALUES (-1, 0, 0);
