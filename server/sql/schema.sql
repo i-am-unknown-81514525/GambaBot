@@ -1,11 +1,12 @@
 CREATE TABLE IF NOT EXISTS holder_entity(
     holder_id INT PRIMARY KEY AUTOINCREMENT,
+    custom_name TEXT NULL DEFAULT NULL,
     create_dt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 );
 
 CREATE TABLE IF NOT EXISTS user_acc(
     user_id BIGINT PRIMARY KEY,
-    holder_id INT NOT NULL,
+    holder_id INT NOT NULL UNIQUE,
     create_dt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (holder_id) REFERENCES holder_entity(holder_id)
 );
@@ -31,11 +32,11 @@ CREATE TABLE IF NOT EXISTS coin(
 );
 
 CREATE TABLE IF NOT EXISTS user_coin(
-    user_id INT NOT NULL,
+    account_id INT NOT NULL,
     coin_id INT NOT NULL,
     amount BIGINT NOT NULL DEFAULT 0,
-    PRIMARY KEY (user_id, coin_id),
-    FOREIGN KEY (user_id) REFERENCES account(id),
+    PRIMARY KEY (account_id, coin_id),
+    FOREIGN KEY (account_id) REFERENCES account(id),
     FOREIGN KEY (coin_id) REFERENCES coin(id),
 );
 
@@ -54,8 +55,8 @@ CREATE TABLE IF NOT EXISTS uni_transact(
     coin_id INT NOT NULL,
     amount BIGINT NOT NULL,
     kind VARCHAR(8) NOT NULL,
-    inner_hash TEXT NOT NULL,
-    reason TEXT NOT NULL,
+    inner_hash TEXT NOT NULL DEFAULT '',
+    reason TEXT NOT NULL DEFAULT 'No reason',
     create_dt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     transact_data TEXT GENERATED ALWAYS AS (
         CAST(src AS TEXT) || '--' ||
@@ -74,13 +75,15 @@ CREATE TABLE IF NOT EXISTS uni_transact(
 );
 
 CREATE TABLE IF NOT EXISTS transact_chain(
+    order INT UNIQUE AUTOINCREMENT,
     tx TEXT NOT NULL PRIMARY KEY,
     transact_id INT NOT NULL UNIQUE,
     FOREIGN KEY (transact_id) REFERENCES uni_transact(id)
 );
 
 CREATE TABLE IF NOT EXISTS reward_transact(
-    ref_id INT UNIQUE,
+    id INT PRIMARY KEY AUTOINCREMENT,
+    ref_id INT UNIQUE NULL,
     reason TEXT NOT NULL,
     transact_data TEXT GENERATED ALWAYS AS (
         reason
@@ -89,7 +92,8 @@ CREATE TABLE IF NOT EXISTS reward_transact(
 );
 
 CREATE TABLE IF NOT EXISTS game_transact(
-    ref_id INT UNIQUE,
+    id INT PRIMARY KEY AUTOINCREMENT,
+    ref_id INT UNIQUE NULL,
     server_secret TEXT UNIQUE NOT NULL,
     client_secret TEXT UNIQUE NOT NULL,
     transact_data TEXT GENERATED ALWAYS AS (
@@ -99,10 +103,10 @@ CREATE TABLE IF NOT EXISTS game_transact(
     FOREIGN KEY ref_id REFERENCES uni_transact(ref_id)
 );
 
-INSERT INTO holder_entity (id) VALUES (0);
+INSERT INTO holder_entity (id, custom_name) VALUES (0, 'SYSTEM');
 INSERT INTO user_acc(user_id, holder_id) VALUES (0, 0);
 INSERT INTO account(id, holder_id) VALUES (0, 0);
-INSERT INTO holder_entity (id) VALUES (-1);
+INSERT INTO holder_entity (id, custom_name) VALUES (-1, 'RESERVED');
 INSERT INTO user_acc(user_id, holder_id) VALUES (-1, -1);
 INSERT INTO account(id, holder_id) VALUES (-1, -1);
 INSERT INTO coin(id, unique_name, read_name) VALUES (0, 'COIN', 'Coin');
