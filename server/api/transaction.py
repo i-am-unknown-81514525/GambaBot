@@ -1,0 +1,63 @@
+from typing import Annotated, TypedDict
+
+from fastapi import FastAPI, APIRouter, Depends, HTTPException
+
+from database.transact import get_transaction as db_get_transaction
+from database.transact import transact
+from database.account import get_account_coin_balance
+from helper.jwt_helper import get_user
+from helper.db_helper import DB, get_tx_conn
+from schema.db import Transaction
+
+app = FastAPI()
+
+public_router = APIRouter()
+protected_router = APIRouter(dependencies=[Depends(get_user)])
+
+
+@public_router.get("/get/{transaction_id}")
+async def get_transaction(
+    conn: Annotated[DB, Depends(get_tx_conn)], transaction_id: str
+) -> Transaction:
+    try:
+        uni_id = int(transaction_id)
+        result = await db_get_transaction(conn, uni_id)
+        if not result:
+            raise HTTPException(404, "The requests transaction cannot be found")
+    except (ValueError, HTTPException):
+        result = await db_get_transaction(conn, transaction_id)
+        if not result:
+            raise HTTPException(404, "The requests transaction cannot be found")
+    return result
+
+
+class PaySchema(TypedDict):
+    src: int
+    dst: int
+    coin_id: int
+    amount: int
+
+
+@protected_router.post("/pay")
+async def pay_transaction(
+    conn: Annotated[DB, Depends(get_tx_conn)],
+    payment_config: PaySchema,
+    user: Annotated[int, Depends(get_user)],
+) -> Transaction:
+    if user != payment_config["src"]:
+        raise HTTPException(403, "You cannot pay as someone")
+    if payment_config["amount"] < await get_account_coin_balance(
+        conn, payment_config["src"], payment_config["coin_id"]
+    ):
+        raise HTTPException(422, "Insufficient Balance")
+    tid, _ = await transact(
+        conn,
+        payment_config["src"],
+        payment_config["dst"],
+        payment_config["coin_id"],
+        payment_config["amount"],
+    )
+    result = await db_get_transaction(conn, tid)
+    if not result:
+        raise HTTPException(500, "Unknown status: cannot get transaction just created")
+    return result

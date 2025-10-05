@@ -103,28 +103,32 @@ async def force_transact(
 
 async def transact(
     conn: ProxiedConnection,
-    src: Account,
-    dst: Account,
-    coin: Coin,
+    src: Account | int,
+    dst: Account | int,
+    coin: Coin | int,
     amount: int,
     reason: str = "No reason provided - transaction",
     kind: Literal["none", "reward", "game"] = "none",
     inner_hash: str = "",
 ) -> tuple[int, str]:
-    # Sufficient balance check
+    src = _acc_id(src)
+    dst = _acc_id(dst)
+    coin = _coin_id(coin)
     sufficient = await (
         await conn.execute(
             (
                 "SELECT CASE WHEN COALESCE((SELECT amount FROM user_coin WHERE account_id = ? AND coin_id = ?), 0) >= ? "
                 "THEN 1 ELSE 0 END AS sufficient;"
             ),
-            (src.id, coin.id, amount),
+            (src, coin, amount),
         )
     ).fetchone()
     if sufficient[0] == 0:
         raise InsufficientBalanceError("Insufficient balance")
 
-    return await force_transact(conn, src, dst, coin, amount, reason, kind, inner_hash)
+    return await raw_force_transact(
+        conn, src, dst, coin, amount, reason, kind, inner_hash
+    )
 
 
 async def create_reward_transact(
@@ -320,3 +324,182 @@ async def list_account_transactions(
             )
         )
     return results
+
+
+async def get_transaction_by_uni_id(
+    conn: ProxiedConnection, uni_id: int
+) -> Transaction | None:
+    cur = await conn.execute(
+        """
+        SELECT
+            u.id,
+            u.src,
+            u.dst,
+            u.coin_id,
+            c.unique_name,
+            c.read_name,
+            u.amount,
+            u.kind,
+            u.reason,
+            u.inner_hash,
+            u.create_dt,
+            u.transact_data,
+            rt.id AS reward_id,
+            rt.reason AS reward_reason,
+            gt.id AS game_id,
+            gt.server_secret,
+            gt.client_secret,
+            gt.user_win
+        FROM uni_transact u
+        LEFT JOIN coin c ON c.id = u.coin_id
+        LEFT JOIN reward_transact rt ON rt.ref_id = u.id
+        LEFT JOIN game_transact gt ON gt.ref_id = u.id
+        WHERE u.id = ?
+        """,
+        (uni_id,),
+    )
+    row = await cur.fetchone()
+    if not row:
+        return None
+    (
+        uid,
+        src,
+        dst,
+        coin_id,
+        coin_unique,
+        coin_read,
+        amount,
+        kind,
+        reason,
+        inner_hash,
+        create_dt,
+        transact_data,
+        reward_id,
+        reward_reason,
+        game_id,
+        server_secret,
+        client_secret,
+        user_win,
+    ) = row
+    reward_dc = (
+        Reward(id=reward_id, reason=reward_reason) if reward_id is not None else None
+    )
+    game_dc = (
+        Game(
+            id=game_id,
+            server_secret=server_secret,
+            client_secret=client_secret,
+            user_win=bool(user_win),
+        )
+        if game_id is not None
+        else None
+    )
+    return Transaction(
+        id=uid,
+        src=src,
+        dst=dst,
+        coin_id=coin_id,
+        coin_unique_name=coin_unique,
+        coin_read_name=coin_read,
+        amount=amount,
+        kind=kind,
+        reason=reason,
+        inner_hash=inner_hash,
+        create_dt=create_dt,
+        transact_data=transact_data,
+        reward=reward_dc,
+        game=game_dc,
+    )
+
+
+async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction | None:
+    cur = await conn.execute(
+        """
+        SELECT
+            u.id,
+            u.src,
+            u.dst,
+            u.coin_id,
+            c.unique_name,
+            c.read_name,
+            u.amount,
+            u.kind,
+            u.reason,
+            u.inner_hash,
+            u.create_dt,
+            u.transact_data,
+            rt.id AS reward_id,
+            rt.reason AS reward_reason,
+            gt.id AS game_id,
+            gt.server_secret,
+            gt.client_secret,
+            gt.user_win
+        FROM transact_chain tc
+        INNER JOIN uni_transact u ON u.id = tc.transact_id
+        LEFT JOIN coin c ON c.id = u.coin_id
+        LEFT JOIN reward_transact rt ON rt.ref_id = u.id
+        LEFT JOIN game_transact gt ON gt.ref_id = u.id
+        WHERE tc.tx = ?
+        """,
+        (tx,),
+    )
+    row = await cur.fetchone()
+    if not row:
+        return None
+    (
+        uid,
+        src,
+        dst,
+        coin_id,
+        coin_unique,
+        coin_read,
+        amount,
+        kind,
+        reason,
+        inner_hash,
+        create_dt,
+        transact_data,
+        reward_id,
+        reward_reason,
+        game_id,
+        server_secret,
+        client_secret,
+        user_win,
+    ) = row
+    reward_dc = (
+        Reward(id=reward_id, reason=reward_reason) if reward_id is not None else None
+    )
+    game_dc = (
+        Game(
+            id=game_id,
+            server_secret=server_secret,
+            client_secret=client_secret,
+            user_win=bool(user_win),
+        )
+        if game_id is not None
+        else None
+    )
+    return Transaction(
+        id=uid,
+        src=src,
+        dst=dst,
+        coin_id=coin_id,
+        coin_unique_name=coin_unique,
+        coin_read_name=coin_read,
+        amount=amount,
+        kind=kind,
+        reason=reason,
+        inner_hash=inner_hash,
+        create_dt=create_dt,
+        transact_data=transact_data,
+        reward=reward_dc,
+        game=game_dc,
+    )
+
+
+async def get_transaction(conn: ProxiedConnection, id: str | int) -> Transaction | None:
+    if isinstance(id, str):
+        return await get_transaction_by_tx(conn, id)
+    if isinstance(id, int):  # pyright: ignore[reportUnnecessaryIsInstance]
+        return await get_transaction_by_uni_id(conn, id)
+    raise TypeError("ID can only be string(str) or (int)")  # pyright: ignore[reportUnreachable]

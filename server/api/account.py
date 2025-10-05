@@ -28,3 +28,7 @@ async def list_user_accounts(
     conn: Annotated[asqlite.ProxiedConnection, Depends(get_tx_conn)], user_id: int
 ) -> list[Account]:
     return await get_raw_user_account(conn, user_id)
+
+
+acc_app.include_router(protected_router)
+acc_app.include_router(public_router)

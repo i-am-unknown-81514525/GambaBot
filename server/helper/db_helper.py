@@ -15,6 +15,8 @@ PRAGMAS = [
     "PRAGMA cache_size=-2000;",  # ~2MB
 ]
 
+type DB = asqlite.ProxiedConnection
+
 
 async def init_pool(app: FastAPI, min_size: int = 2, max_size: int = 6):
     if not DB_PATH.exists():
