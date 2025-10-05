@@ -39,7 +39,6 @@ async def holder_transact(
     dst_id = _acc_id(dst)
     coin_id = _coin_id(coin)
 
-    # Fetch accounts for holder with balances (ordered by account_id asc: "first" is rows[0])
     cur = await conn.execute(
         """
         SELECT a.id AS account_id, COALESCE(uc.amount, 0) AS balance
@@ -62,7 +61,6 @@ async def holder_transact(
             f"Insufficient combined balance for holder {holder_id}: have {combined}, need {amount}"
         )
 
-    # 1) If any single account has sufficient balance, pay from that account directly.
     for src_account_id, bal in rows:
         if bal >= amount:
             tx_id, tx_data = await raw_force_transact(
@@ -77,7 +75,6 @@ async def holder_transact(
             )
             return [(tx_id, tx_data)]
 
-    # 2) Otherwise, consolidate just enough into the first account, then pay from it.
     first_account_id, first_balance = rows[0]
     needed = amount - first_balance if first_balance < amount else 0
 

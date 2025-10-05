@@ -61,3 +61,7 @@ async def pay_transaction(
     if not result:
         raise HTTPException(500, "Unknown status: cannot get transaction just created")
     return result
+
+
+tr_app.include_router(public_router)
+tr_app.include_router(protected_router)

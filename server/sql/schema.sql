@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS uni_transact(
 );
 
 CREATE TABLE IF NOT EXISTS transact_chain(
-    order INT UNIQUE AUTOINCREMENT,
-    tx TEXT NOT NULL PRIMARY KEY,
+    order INT PRIMARY KEY AUTOINCREMENT,
+    tx TEXT NOT NULL UNIQUE,
     transact_id INT NOT NULL UNIQUE,
     FOREIGN KEY (transact_id) REFERENCES uni_transact(id)
 );

@@ -1,0 +1,11 @@
+services:
+    server:
+        build:
+            context: ./server
+            dockerfile: Dockerfile
+        ports:
+            - "9314:8000"
+        volumes:
+            - ./server/data:/app/data
+        restart: unless-stopped
+        env_file: ".env"
