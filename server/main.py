@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
+from collections.abc import Callable, Awaitable
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from api.auth import auth_app
 from api.account import acc_app
 from api.transaction import tr_app
@@ -16,10 +17,16 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/auth", auth_app)
+app.mount("/auth", auth_app) 
 app.mount("/account", acc_app)
 app.mount("/transaction", tr_app)
 app.mount("/game", game_app)
+
+@app.middleware("http")
+async def attach_parent(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
+    request.state.parent = app
+    response = await call_next(request)
+    return response
 
 
 @app.get("/health")

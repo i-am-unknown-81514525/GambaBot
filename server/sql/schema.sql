@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS holder_entity(
-    holder_id INT PRIMARY KEY AUTOINCREMENT,
+    holder_id INTEGER PRIMARY KEY AUTOINCREMENT,
     custom_name TEXT NULL DEFAULT NULL,
-    create_dt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_dt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS user_acc(
@@ -26,9 +26,9 @@ CREATE TABLE IF NOT EXISTS account(
 );
 
 CREATE TABLE IF NOT EXISTS coin(
-    id INT PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     unique_name TEXT NOT NULL UNIQUE,
-    read_name TEXT NOT NULL,
+    read_name TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS user_coin(
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS user_coin(
     amount BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (account_id, coin_id),
     FOREIGN KEY (account_id) REFERENCES account(id),
-    FOREIGN KEY (coin_id) REFERENCES coin(id),
+    FOREIGN KEY (coin_id) REFERENCES coin(id)
 );
 
 CREATE TABLE IF NOT EXISTS game_instance(
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS game_instance(
 );
 
 CREATE TABLE IF NOT EXISTS uni_transact(
-    id INT PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     src BIGINT NOT NULL,
     dst BIGINT NOT NULL,
     coin_id INT NOT NULL,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS uni_transact(
     kind VARCHAR(8) NOT NULL,
     inner_hash TEXT NOT NULL DEFAULT '',
     reason TEXT NOT NULL DEFAULT 'No reason',
-    create_dt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_dt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     transact_data TEXT GENERATED ALWAYS AS (
         CAST(src AS TEXT) || '--' ||
         CAST(dst AS TEXT) || '--' ||
@@ -65,51 +65,49 @@ CREATE TABLE IF NOT EXISTS uni_transact(
         CAST(amount AS TEXT) || '--' ||
         kind || '--' ||
         inner_hash || '--' ||
-        STRFTIME("%Y-%m-%d %H:%M:%S", created_at) || '--' ||
+        STRFTIME('%Y-%m-%d %H:%M:%S', created_dt) || '--' ||
         reason
     ),
     FOREIGN KEY (coin_id) REFERENCES coin(id),
     FOREIGN KEY (src) REFERENCES account(id),
     FOREIGN KEY (dst) REFERENCES account(id),
-    CONSTRAINT kind_check CHECK (kind == "reward" || kind == "game" || kind == "none")
+    CONSTRAINT kind_check CHECK (kind == 'reward' || kind == 'game' || kind == 'none')
 );
 
 CREATE TABLE IF NOT EXISTS transact_chain(
-    order INT PRIMARY KEY AUTOINCREMENT,
+    order_op INTEGER PRIMARY KEY AUTOINCREMENT,
     tx TEXT NOT NULL UNIQUE,
     transact_id INT NOT NULL UNIQUE,
     FOREIGN KEY (transact_id) REFERENCES uni_transact(id)
 );
 
 CREATE TABLE IF NOT EXISTS reward_transact(
-    id INT PRIMARY KEY AUTOINCREMENT,
-    ref_id INT UNIQUE NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ref_id INT UNIQUE NULL REFERENCES uni_transact(id),
     reason TEXT NOT NULL,
     transact_data TEXT GENERATED ALWAYS AS (
         reason
-    ),
-    FOREIGN KEY ref_id REFERENCES uni_transact(ref_id)
+    )
 );
 
 CREATE TABLE IF NOT EXISTS game_transact(
-    id INT PRIMARY KEY AUTOINCREMENT,
-    ref_id INT UNIQUE NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ref_id INT UNIQUE NULL REFERENCES uni_transact(id),
     server_secret TEXT UNIQUE NOT NULL,
     client_secret TEXT UNIQUE NOT NULL,
-    game_instance TEXT UNIQUE NOT NULL REFERENCES game_instance(id)
+    game_instance TEXT UNIQUE NOT NULL REFERENCES game_instance(id),
     transact_data TEXT GENERATED ALWAYS AS (
         game_instance || '--' ||server_secret || '--' || client_secret
     ),
-    user_win BOOLEAN NOT NULL,
-    FOREIGN KEY ref_id REFERENCES uni_transact(ref_id)
+    user_win BOOLEAN NOT NULL
 );
 
-INSERT INTO holder_entity (id, custom_name) VALUES (0, 'SYSTEM');
+INSERT INTO holder_entity (holder_id, custom_name) VALUES (0, 'SYSTEM');
 INSERT INTO user_acc(user_id, holder_id) VALUES (0, 0);
 INSERT INTO account(id, holder_id) VALUES (0, 0);
-INSERT INTO holder_entity (id, custom_name) VALUES (-1, 'RESERVED');
+INSERT INTO holder_entity (holder_id, custom_name) VALUES (-1, 'RESERVED');
 INSERT INTO user_acc(user_id, holder_id) VALUES (-1, -1);
 INSERT INTO account(id, holder_id) VALUES (-1, -1);
 INSERT INTO coin(id, unique_name, read_name) VALUES (0, 'COIN', 'Coin');
-INSERT INTO user_coin(user_id, coin_id, amount) VALUES (0, 0, 21_000_000_000);
-INSERT INTO user_coin(user_id, coin_id, amount) VALUES (-1, 0, 0);
+INSERT INTO user_coin(account_id, coin_id, amount) VALUES (0, 0, 21000000000);
+INSERT INTO user_coin(account_id, coin_id, amount) VALUES (-1, 0, 0);

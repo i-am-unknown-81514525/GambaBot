@@ -18,7 +18,7 @@ PRAGMAS = [
 type DB = asqlite.ProxiedConnection
 
 
-async def init_pool(app: FastAPI, min_size: int = 2, max_size: int = 6):
+async def init_pool(app: FastAPI, size: int = 8):
     if not DB_PATH.exists():
         DB_PATH.parent.mkdir(parents=True, exist_ok=True)
         DB_PATH.touch()
@@ -26,11 +26,11 @@ async def init_pool(app: FastAPI, min_size: int = 2, max_size: int = 6):
             _ = await conn.executescript(SCHEMA_PATH.read_text())
             await conn.commit()
     app.state.db_pool = await asqlite.create_pool(
-        DB_PATH.absolute().as_posix(), min_size=min_size, max_size=max_size
+        DB_PATH.absolute().as_posix(), size=size
     )
     # Initialize all currently created connections with PRAGMAs.
     # Pool lazily creates up to max_size; only those pre-created get PRAGMAs now.
-    for _ in range(min_size):
+    for _ in range(size):
         async with app.state.db_pool.acquire() as conn:
             for pragma in PRAGMAS:
                 _ = await conn.execute(pragma)
@@ -44,13 +44,13 @@ async def close_pool(app: FastAPI):
 
 
 async def get_conn(request: Request):
-    pool: asqlite.Pool = request.app.state.db_pool  # pyright: ignore[reportAny]
+    pool: asqlite.Pool = request.state.parent.state.db_pool  # pyright: ignore[reportAny]
     async with pool.acquire() as conn:
         yield conn
 
 
 async def get_tx_conn(request: Request, immediate: bool = True):
-    pool: asqlite.Pool = request.app.state.db_pool  # pyright: ignore[reportAny]
+    pool: asqlite.Pool = request.state.parent.state.db_pool  # pyright: ignore[reportAny]
     async with pool.acquire() as conn:
         if immediate:
             _ = await conn.execute("BEGIN IMMEDIATE;")

@@ -8,6 +8,9 @@ class Coin:
     unique_name: str
     name: str
 
+    def __repr__(self) -> str:
+        return self.unique_name
+
 
 @dataclass(frozen=True)
 class Account:
