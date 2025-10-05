@@ -96,8 +96,9 @@ CREATE TABLE IF NOT EXISTS game_transact(
     ref_id INT UNIQUE NULL,
     server_secret TEXT UNIQUE NOT NULL,
     client_secret TEXT UNIQUE NOT NULL,
+    game_instance TEXT UNIQUE NOT NULL REFERENCES game_instance(id)
     transact_data TEXT GENERATED ALWAYS AS (
-        server_secret || '--' || client_secret
+        game_instance || '--' ||server_secret || '--' || client_secret
     ),
     user_win BOOLEAN NOT NULL,
     FOREIGN KEY ref_id REFERENCES uni_transact(ref_id)

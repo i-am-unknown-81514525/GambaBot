@@ -34,6 +34,7 @@ class Game:
     id: int
     server_secret: str
     client_secret: str
+    game_instance: str
     user_win: bool
 
 

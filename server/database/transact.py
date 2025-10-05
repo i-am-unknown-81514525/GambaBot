@@ -257,6 +257,7 @@ async def list_account_transactions(
             gt.id AS game_id,
             gt.server_secret,
             gt.client_secret,
+            gt.game_instance,
             gt.user_win
         FROM uni_transact u
         LEFT JOIN coin c ON c.id = u.coin_id
@@ -288,6 +289,7 @@ async def list_account_transactions(
         game_id,
         server_secret,
         client_secret,
+        game_instance,
         user_win,
     ) in rows:
         reward_dc = (
@@ -301,6 +303,7 @@ async def list_account_transactions(
                 server_secret=server_secret,
                 client_secret=client_secret,
                 user_win=bool(user_win),
+                game_instance=game_instance,
             )
             if game_id is not None
             else None
@@ -349,6 +352,7 @@ async def get_transaction_by_uni_id(
             gt.id AS game_id,
             gt.server_secret,
             gt.client_secret,
+            gt.game_instance,
             gt.user_win
         FROM uni_transact u
         LEFT JOIN coin c ON c.id = u.coin_id
@@ -379,6 +383,7 @@ async def get_transaction_by_uni_id(
         game_id,
         server_secret,
         client_secret,
+        game_instance,
         user_win,
     ) = row
     reward_dc = (
@@ -389,6 +394,7 @@ async def get_transaction_by_uni_id(
             id=game_id,
             server_secret=server_secret,
             client_secret=client_secret,
+            game_instance=game_instance,
             user_win=bool(user_win),
         )
         if game_id is not None
@@ -433,6 +439,7 @@ async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction
             gt.id AS game_id,
             gt.server_secret,
             gt.client_secret,
+            gt.game_instance,
             gt.user_win
         FROM transact_chain tc
         INNER JOIN uni_transact u ON u.id = tc.transact_id
@@ -464,6 +471,7 @@ async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction
         game_id,
         server_secret,
         client_secret,
+        game_instance,
         user_win,
     ) = row
     reward_dc = (
@@ -475,6 +483,7 @@ async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction
             server_secret=server_secret,
             client_secret=client_secret,
             user_win=bool(user_win),
+            game_instance=game_instance,
         )
         if game_id is not None
         else None

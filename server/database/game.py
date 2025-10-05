@@ -53,3 +53,40 @@ async def get_game_instance(conn: DB, game_id: str) -> GameInstance | None:
         game_hash=str(row[2]),
         is_used=bool(row[3]),
     )
+
+
+async def mark_game_instance_completed(
+    conn: DB,
+    game_id: str,
+    *,
+    fail_if_already_used: bool = True,
+) -> GameInstance:
+    row = await (
+        await conn.execute(
+            """
+            SELECT game_id, game_secret, game_hash, is_used
+            FROM game_instance
+            WHERE game_id = ?
+            """,
+            (game_id,),
+        )
+    ).fetchone()
+
+    if row is None:
+        raise ValueError(f"Game instance '{game_id}' not found")
+
+    gid, secret, ghash, is_used = str(row[0]), str(row[1]), str(row[2]), bool(row[3])
+
+    if is_used:
+        if fail_if_already_used:
+            raise ValueError(f"Game instance '{game_id}' is already marked as used")
+        return GameInstance(
+            game_id=gid, game_secret=secret, game_hash=ghash, is_used=True
+        )
+
+    _ = await conn.execute(
+        "UPDATE game_instance SET is_used = 1 WHERE game_id = ?",
+        (game_id,),
+    )
+
+    return GameInstance(game_id=gid, game_secret=secret, game_hash=ghash, is_used=True)

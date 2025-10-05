@@ -2,7 +2,15 @@ from typing import Literal
 
 from asqlite import ProxiedConnection
 from schema.db import Account, Coin
-from .transact import raw_force_transact, InsufficientBalanceError
+from .transact import raw_force_transact, InsufficientBalanceError, create_game_transact
+
+from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
+
+
+def _sha3_512_hex(data: str) -> str:
+    h = Hash(SHA3_512())
+    h.update(data.encode())
+    return h.finalize().hex()
 
 
 def _acc_id(val: int | Account) -> int:
@@ -23,6 +31,7 @@ async def holder_transact(
     reason_internal: str = "Holder consolidation",
     reason_payment: str = "Holder payment",
     kind: Literal["none", "reward", "game"] = "none",
+    payment_inner_hash: str = "",
 ) -> list[tuple[int, str]]:
     if amount <= 0:
         raise ValueError("amount must be > 0")
@@ -103,7 +112,7 @@ async def holder_transact(
         amount=amount,
         reason=reason_payment,
         kind=kind,
-        inner_hash="",
+        inner_hash=payment_inner_hash,
     )
     results.append((tx_id, tx_data))
     return results
@@ -125,3 +134,36 @@ async def get_holder_coin_balance(
         )
     ).fetchone()
     return int(row[0]) if row else 0
+
+
+async def game_force_transfer_holder_to_system(
+    conn: ProxiedConnection,
+    holder_id: int,
+    coin: int | Coin,
+    amount: int,
+    server_secret: str,
+    client_secret: str,
+    user_win: bool,
+    uni_reason: str = "Game settlement",
+) -> tuple[int, int]:
+    game_id, game_data = await create_game_transact(
+        conn, server_secret, client_secret, user_win
+    )
+    inner_hash = _sha3_512_hex(game_data)
+
+    _, uni_id = await holder_transact(
+        conn,
+        holder_id,
+        0,
+        _coin_id(coin),
+        amount,
+        reason_payment=uni_reason,
+        kind="game",
+        payment_inner_hash=inner_hash,
+    )
+
+    _ = await conn.execute(
+        "UPDATE game_transact SET ref_id = ? WHERE id = ?",
+        (uni_id[0], game_id),
+    )
+    return uni_id[0], game_id
