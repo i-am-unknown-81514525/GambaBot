@@ -6,6 +6,7 @@ from api.auth import auth_app
 from api.account import acc_app
 from api.transaction import tr_app
 from api.game import game_app
+from api.user import user_app
 from helper.db_helper import init_pool, close_pool
 
 
@@ -21,6 +22,7 @@ app.mount("/auth", auth_app)
 app.mount("/account", acc_app)
 app.mount("/transaction", tr_app)
 app.mount("/game", game_app)
+app.mount("/user", user_app)
 
 @app.middleware("http")
 async def attach_parent(request: Request, call_next: Callable[[Request], Awaitable[Response]]):
