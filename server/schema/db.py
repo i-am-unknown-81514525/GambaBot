@@ -9,27 +9,27 @@ class Coin:
     name: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class Account:
     id: int
     holder_id: int
     balance: dict[Coin, int]
 
 
-@dataclass
+@dataclass(frozen=True)
 class User:
     id: int
     holder_id: int
     accounts: list[Account]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Reward:
     id: int
     reason: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class Game:
     id: int
     server_secret: str
@@ -37,7 +37,7 @@ class Game:
     user_win: bool
 
 
-@dataclass
+@dataclass(frozen=True)
 class Transaction:
     id: int
     src: int
@@ -53,3 +53,11 @@ class Transaction:
     transact_data: str
     reward: Optional[Reward]
     game: Optional[Game]
+
+
+@dataclass(frozen=True)
+class GameInstance:
+    game_id: str
+    game_secret: str
+    game_hash: str
+    is_used: bool

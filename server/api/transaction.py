@@ -9,7 +9,7 @@ from helper.jwt_helper import get_user
 from helper.db_helper import DB, get_tx_conn
 from schema.db import Transaction
 
-app = FastAPI()
+tr_app = FastAPI()
 
 public_router = APIRouter()
 protected_router = APIRouter(dependencies=[Depends(get_user)])
