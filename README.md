@@ -2,7 +2,7 @@
 Gamble! Gamble! Gamble everything with cryptographically verifiable fairness and that I definitiely didn't and cannot rig the game 
 
 ### How it work
-TODO
+This work by having the server pre-generate a secret for a game, and provide you the hash of the secret (so you can verify that I am not cheating by changing it), and you provide a client secret which the server and client secret is mixed as defined in the code that you can read. *If you implement it correctly, which for the UI, it doesn't actually show the server secret first although the API make it possible to do so*
 
 ### How to setup
 This project wouldn't be possible to be run by packaging into a executable or Pypi as you need to run 2 process which 1 of them is the discord bot and another is the webserver (If you want to try it, check out the demo which is the discord bot invite link [here](https://discord.com/oauth2/authorize?client_id=1424521785772212344), which you can run it anywhere with User Install or in the server by anyone if you do server install):
