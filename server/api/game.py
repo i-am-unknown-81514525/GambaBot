@@ -97,8 +97,8 @@ async def gamble_handler(
         tid = (
             await game_force_transfer(
                 conn,
-                (await get_raw_user_account(conn, user_id))[0],
                 0,
+                (await get_raw_user_account(conn, user_id))[0],
                 coin=req.coin_id,
                 amount=req.amount,
                 server_secret=server_secret,
