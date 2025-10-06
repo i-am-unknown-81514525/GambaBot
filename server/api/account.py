@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from schema.db import Account
 from helper.jwt_helper import get_user
 from helper.db_helper import get_tx_conn
-from database.account import get_raw_user_account
+from database.account import get_raw_user_account, get_account_by_id
 
 acc_app = FastAPI()
 
@@ -28,6 +28,19 @@ async def list_user_accounts(
     conn: Annotated[asqlite.ProxiedConnection, Depends(get_tx_conn)], user_id: int
 ) -> list[Account]:
     return await get_raw_user_account(conn, user_id)
+
+@public_router.get("/exist/{account_id:int}")
+async def check_account_exist(
+    conn: Annotated[asqlite.ProxiedConnection, Depends(get_tx_conn)],
+    account_id: int,
+) -> bool:
+    try:
+        await get_account_by_id(conn, account_id)
+    except ValueError:
+        return False
+    return True
+
+
 
 
 acc_app.include_router(protected_router)
