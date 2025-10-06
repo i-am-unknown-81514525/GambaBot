@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS jwt_token(
 );
 
 CREATE TABLE IF NOT EXISTS account(
-    id BIGINT PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     holder_id INT NOT NULL,
     create_dt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (holder_id) REFERENCES holder_entity(holder_id)
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS game_instance(
 
 CREATE TABLE IF NOT EXISTS uni_transact(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    src BIGINT NOT NULL,
-    dst BIGINT NOT NULL,
+    src INT NOT NULL,
+    dst INT NOT NULL,
     coin_id INT NOT NULL,
     amount BIGINT NOT NULL,
     kind VARCHAR(8) NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS uni_transact(
     FOREIGN KEY (coin_id) REFERENCES coin(id),
     FOREIGN KEY (src) REFERENCES account(id),
     FOREIGN KEY (dst) REFERENCES account(id),
-    CONSTRAINT kind_check CHECK (kind == 'reward' || kind == 'game' || kind == 'none')
+    CONSTRAINT kind_check CHECK (kind == 'reward' OR kind == 'game' OR kind == 'none')
 );
 
 CREATE TABLE IF NOT EXISTS transact_chain(

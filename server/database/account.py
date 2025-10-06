@@ -5,11 +5,12 @@ from .holder import holder_transact
 
 
 async def get_raw_user_account(conn: ProxiedConnection, user_id: int) -> list[Account]:
-    holder_id: int = (
-        await (
-            await conn.execute("SELECT holder_id FROM account WHERE id = ?", (user_id,))
+    row = await (
+            await conn.execute("SELECT holder_id FROM user_acc WHERE user_id = ?", (user_id,))
         ).fetchone()
-    )[0]
+    if not row:
+        raise ValueError(f"User {user_id} not found")
+    holder_id: int =row[0]
     return await get_holder_account(conn, holder_id)
 
 

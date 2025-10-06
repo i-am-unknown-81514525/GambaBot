@@ -8,7 +8,7 @@ from schema.db import Account
 from helper.jwt_helper import get_user
 from helper.db_helper import get_tx_conn
 from database.account import get_raw_user_account, get_account_by_id
-from database.user import get_user as get_db_user
+from database.user import get_user as get_db_user, user_exist
 
 acc_app = FastAPI()
 
@@ -21,7 +21,7 @@ async def list_auth_self_accounts(
     conn: Annotated[asqlite.ProxiedConnection, Depends(get_tx_conn)],
     user_id: Annotated[int, Depends(get_user)],
 ) -> list[Account]:
-    user = await get_db_user(conn, user_id)
+    user = await user_exist(conn, user_id)
     if not user:
         raise HTTPException(404, "User doesn't exist")
     return await get_raw_user_account(conn, user_id)
@@ -31,7 +31,7 @@ async def list_auth_self_accounts(
 async def list_user_accounts(
     conn: Annotated[asqlite.ProxiedConnection, Depends(get_tx_conn)], user_id: int
 ) -> list[Account]:
-    user = await get_db_user(conn, user_id)
+    user = await user_exist(conn, user_id)
     if not user:
         raise HTTPException(404, "User doesn't exist")
     return await get_raw_user_account(conn, user_id)

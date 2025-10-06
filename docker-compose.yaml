@@ -9,3 +9,9 @@ services:
             - ./server/data:/app/data
         restart: unless-stopped
         env_file: ".env"
+    bot:
+        build:
+            context: ./bot_dc
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        env_file: ".env"

@@ -35,7 +35,7 @@ class Beg(Cog):
                 first_acc = accs[0]["id"]
                 total_balance = 0
                 for acc in accs:
-                    total_balance += acc.get("balance",{}).get("0")
+                    total_balance += acc.get("balance",{}).get("COIN", 0)
                 if total_balance < 100:
                     return await interaction.followup.send(embed=discord.Embed(
                         title="You tried...",

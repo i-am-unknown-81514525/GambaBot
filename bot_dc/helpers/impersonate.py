@@ -22,7 +22,7 @@ class JWTHandler:
 
     def verify(self, token: str) -> bool:
         try:
-            jwt.decode(token, self._key, algorithms=[self._algo])
+            jwt.decode(token, self._key, algorithms=[self._algo], audience="use", issuer="gamba_bot")
             return True
         except jwt.InvalidTokenError:
             return False
@@ -32,8 +32,8 @@ class JWTHandler:
             "nbt": time.time(),
             "iat": time.time(),
             "exp": time.time() + ttl,
-            "issuer": "gamba_bot",
-            "aud": [f"user:{user_id}"],
+            "iss": "gamba_bot",
+            "aud": [f"use"],
             "user_id": user_id,
         }
         return self.encode(payload)

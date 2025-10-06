@@ -15,7 +15,7 @@ class JWTHandler:
         return jwt.encode(dict(payload), self._key, algorithm=self._algo)
 
     def decode(self, token: str) -> Mapping[str, JSON]:
-        return jwt.decode(token, self._key, algorithms=[self._algo])  # pyright: ignore[reportAny]
+        return jwt.decode(token, self._key, algorithms=[self._algo], audience="use", issuer="gamba_bot")  # pyright: ignore[reportAny]
 
     def verify(self, token: str) -> bool:
         try:
@@ -29,8 +29,8 @@ class JWTHandler:
             "nbt": time.time(),
             "iat": time.time(),
             "exp": time.time() + ttl,
-            "issuer": "gamba_bot",
-            "aud": [f"user:{user_id}"],
+            "iss": "gamba_bot",
+            "aud": ["use"],
             "user_id": user_id,
         }
         return self.encode(payload)

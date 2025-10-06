@@ -32,7 +32,9 @@ FROM python:3.12-slim-bookworm
 #     && useradd --system --gid 999 --uid 999 --create-home nonroot
 
 # Copy the application from the builder
-COPY --from=builder --chown=nonroot:nonroot /app /app
+
+#  --chown=nonroot:nonroot
+COPY --from=builder /app /app
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"

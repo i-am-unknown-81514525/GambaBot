@@ -5,7 +5,7 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException
 from database.transact import get_transaction as db_get_transaction
 from database.transact import transact, InsufficientBalanceError
 from database.account import get_holder_account, get_account_by_id
-from database.user import get_user as db_get_user
+from database.user import UserNotExistError, get_user as db_get_user
 from helper.jwt_helper import get_user
 from helper.db_helper import DB, get_tx_conn
 from schema.db import Transaction
@@ -45,8 +45,9 @@ async def pay_transaction(
     payment_config: PaySchema,
     user: Annotated[int, Depends(get_user)],
 ) -> Transaction:
-    user_obj = await db_get_user(conn, user)
-    if not user_obj:
+    try:
+        user_obj = await db_get_user(conn, user)
+    except UserNotExistError:
         raise HTTPException(404, "User not found")
 
     # Correctly check if the authenticated user owns the source account
