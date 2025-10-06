@@ -44,6 +44,7 @@ class Game:
 @dataclass(frozen=True)
 class Transaction:
     id: int
+    tx: str
     src: int
     dst: int
     coin_id: int

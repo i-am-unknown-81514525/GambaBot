@@ -258,12 +258,14 @@ async def list_account_transactions(
             gt.server_secret,
             gt.client_secret,
             gt.game_instance,
-            gt.user_win
+            gt.user_win,
+            tc.tx
         FROM uni_transact u
         LEFT JOIN coin c ON c.id = u.coin_id
         LEFT JOIN reward_transact rt ON rt.ref_id = u.id
         LEFT JOIN game_transact gt ON gt.ref_id = u.id
-        WHERE u.src = ? OR u.dst = ?
+        LEFT JOIN transact_chain tc ON tc.transact_id = u.id
+        WHERE (u.src = ? OR u.dst = ?)
         ORDER BY u.id DESC
         LIMIT ? OFFSET ?
         """,
@@ -291,6 +293,7 @@ async def list_account_transactions(
         client_secret,
         game_instance,
         user_win,
+        tx,
     ) in rows:
         reward_dc = (
             Reward(id=reward_id, reason=reward_reason)
@@ -311,6 +314,7 @@ async def list_account_transactions(
         results.append(
             Transaction(
                 id=uid,
+                tx=tx,
                 src=src,
                 dst=dst,
                 coin_id=coin_id,
@@ -353,11 +357,13 @@ async def get_transaction_by_uni_id(
             gt.server_secret,
             gt.client_secret,
             gt.game_instance,
-            gt.user_win
+            gt.user_win,
+            tc.tx
         FROM uni_transact u
         LEFT JOIN coin c ON c.id = u.coin_id
         LEFT JOIN reward_transact rt ON rt.ref_id = u.id
         LEFT JOIN game_transact gt ON gt.ref_id = u.id
+        LEFT JOIN transact_chain tc ON tc.transact_id = u.id
         WHERE u.id = ?
         """,
         (uni_id,),
@@ -385,6 +391,7 @@ async def get_transaction_by_uni_id(
         client_secret,
         game_instance,
         user_win,
+        tx,
     ) = row
     reward_dc = (
         Reward(id=reward_id, reason=reward_reason) if reward_id is not None else None
@@ -402,6 +409,7 @@ async def get_transaction_by_uni_id(
     )
     return Transaction(
         id=uid,
+        tx=tx,
         src=src,
         dst=dst,
         coin_id=coin_id,
@@ -440,7 +448,8 @@ async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction
             gt.server_secret,
             gt.client_secret,
             gt.game_instance,
-            gt.user_win
+            gt.user_win,
+            tc.tx
         FROM transact_chain tc
         INNER JOIN uni_transact u ON u.id = tc.transact_id
         LEFT JOIN coin c ON c.id = u.coin_id
@@ -473,6 +482,7 @@ async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction
         client_secret,
         game_instance,
         user_win,
+        tx,
     ) = row
     reward_dc = (
         Reward(id=reward_id, reason=reward_reason) if reward_id is not None else None
@@ -490,6 +500,7 @@ async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction
     )
     return Transaction(
         id=uid,
+        tx=tx,
         src=src,
         dst=dst,
         coin_id=coin_id,
