@@ -33,6 +33,11 @@ class CreateAcc(Cog):
                         description="You already have an account",
                         color=discord.Color.red()
                     ))
+        return await interaction.followup.send(embed=discord.Embed(
+            title="Error",
+            description="Something went wrong",
+            color=discord.Color.red()
+        ))
         
         
 
