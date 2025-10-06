@@ -141,14 +141,15 @@ async def game_force_transfer_holder_to_system(
     server_secret: str,
     client_secret: str,
     user_win: bool,
+    game_instance: str,
     uni_reason: str = "Game settlement",
 ) -> tuple[int, int]:
     game_id, game_data = await create_game_transact(
-        conn, server_secret, client_secret, user_win
+        conn, server_secret, client_secret, user_win, game_instance
     )
     inner_hash = _sha3_512_hex(game_data)
 
-    _, uni_id = await holder_transact(
+    uni_id = (await holder_transact(
         conn,
         holder_id,
         0,
@@ -157,7 +158,7 @@ async def game_force_transfer_holder_to_system(
         reason_payment=uni_reason,
         kind="game",
         payment_inner_hash=inner_hash,
-    )
+    ))[-1]
 
     _ = await conn.execute(
         "UPDATE game_transact SET ref_id = ? WHERE id = ?",

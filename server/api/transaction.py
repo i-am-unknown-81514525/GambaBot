@@ -2,7 +2,11 @@ from typing import Annotated, TypedDict
 
 from fastapi import FastAPI, APIRouter, Depends, HTTPException
 
-from database.transact import get_transaction as db_get_transaction
+from database.transact import (
+    get_transaction as db_get_transaction,
+    get_transactions_by_partial_tx,
+    get_transaction_by_tx,
+)
 from database.transact import transact, InsufficientBalanceError
 from database.account import get_holder_account, get_account_by_id
 from database.user import UserNotExistError, get_user as db_get_user
@@ -23,14 +27,23 @@ async def get_transaction(
     try:
         uni_id = int(transaction_id)
         result = await db_get_transaction(conn, uni_id)
-        if not result:
-            raise HTTPException(404, "The requests transaction cannot be found")
-    except (ValueError, HTTPException):
-        result = await db_get_transaction(conn, transaction_id)
-        if not result:
-            raise HTTPException(404, "The requests transaction cannot be found")
-    return result
+        if result:
+            return result
+    except ValueError:
+        pass
 
+
+    if isinstance(transaction_id, str) and len(transaction_id) >= 6:
+        full_match = await get_transaction_by_tx(conn, transaction_id)
+        if full_match:
+            return full_match
+        partial_matches = await get_transactions_by_partial_tx(conn, transaction_id)
+        if len(partial_matches) == 1:
+            return partial_matches[0]
+        if len(partial_matches) > 1:
+            raise HTTPException(409, "Transaction ID is ambiguous and matches multiple transactions.")
+
+    raise HTTPException(404, "The requested transaction cannot be found")
 
 class PaySchema(TypedDict):
     src: int

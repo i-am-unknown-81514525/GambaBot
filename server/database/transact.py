@@ -151,16 +151,17 @@ async def create_game_transact(
     server_secret: str,
     client_secret: str,
     user_win: bool,
+    game_instance: str,
 ) -> tuple[int, str]:
     """
     Creates a game_transact entry and returns (id, transact_data).
     """
     cur = await conn.execute(
         (
-            "INSERT INTO game_transact(server_secret, client_secret, user_win) "
-            "VALUES (?, ?, ?) RETURNING id, transact_data"
+            "INSERT INTO game_transact(server_secret, client_secret, user_win, game_instance) "
+            "VALUES (?, ?, ?, ?) RETURNING id, transact_data"
         ),
-        (server_secret, client_secret, int(user_win)),
+        (server_secret, client_secret, int(user_win), game_instance),
     )
     gid, gdata = await cur.fetchone()
     return int(gid), str(gdata)
@@ -205,10 +206,11 @@ async def game_force_transfer(
     server_secret: str,
     client_secret: str,
     user_win: bool,
+    game_instance: str,
     uni_reason: str = "Game settlement",
 ) -> tuple[int, int]:
     game_id, game_data = await create_game_transact(
-        conn, server_secret, client_secret, user_win
+        conn, server_secret, client_secret, user_win, game_instance
     )
     inner_hash = _sha3_512_hex(game_data)
 
@@ -250,7 +252,7 @@ async def list_account_transactions(
             u.kind,
             u.reason,
             u.inner_hash,
-            u.create_dt,
+            u.created_dt,
             u.transact_data,
             rt.id AS reward_id,
             rt.reason AS reward_reason,
@@ -333,6 +335,83 @@ async def list_account_transactions(
     return results
 
 
+async def list_holder_transactions(
+    conn: ProxiedConnection,
+    holder_id: int,
+    limit: int = 10,
+    offset: int = 0,
+) -> list[Transaction]:
+    accounts_cur = await conn.execute(
+        "SELECT id FROM account WHERE holder_id = ?", (holder_id,)
+    )
+    account_ids = [row[0] for row in await accounts_cur.fetchall()]
+    if not account_ids:
+        return []
+
+    placeholders = ",".join("?" for _ in account_ids)
+    query = f"""
+        SELECT
+            u.id, u.src, u.dst, u.coin_id, c.unique_name, c.read_name, u.amount, u.kind,
+            u.reason, u.inner_hash, u.created_dt, u.transact_data, rt.id AS reward_id,
+            rt.reason AS reward_reason, gt.id AS game_id, gt.server_secret,
+            gt.client_secret, gt.game_instance, gt.user_win, tc.tx
+        FROM uni_transact u
+        LEFT JOIN coin c ON c.id = u.coin_id
+        LEFT JOIN reward_transact rt ON rt.ref_id = u.id
+        LEFT JOIN game_transact gt ON gt.ref_id = u.id
+        LEFT JOIN transact_chain tc ON tc.transact_id = u.id
+        WHERE (u.src IN ({placeholders}) OR u.dst IN ({placeholders}))
+        ORDER BY u.id DESC
+        LIMIT ? OFFSET ?
+    """
+    params = account_ids + account_ids + [limit, offset]
+    cur = await conn.execute(query, tuple(params))
+    rows = await cur.fetchall()
+    results: list[Transaction] = []
+    for row in rows:
+        (
+            uid, src, dst, coin_id, coin_unique, coin_read, amount, kind, reason,
+            inner_hash, create_dt, transact_data, reward_id, reward_reason, game_id,
+            server_secret, client_secret, game_instance, user_win, tx,
+        ) = row
+        reward_dc = (
+            Reward(id=reward_id, reason=reward_reason)
+            if reward_id is not None
+            else None
+        )
+        game_dc = (
+            Game(
+                id=game_id,
+                server_secret=server_secret,
+                client_secret=client_secret,
+                user_win=bool(user_win),
+                game_instance=game_instance,
+            )
+            if game_id is not None
+            else None
+        )
+        results.append(
+            Transaction(
+                id=uid,
+                tx=tx,
+                src=src,
+                dst=dst,
+                coin_id=coin_id,
+                coin_unique_name=coin_unique,
+                coin_read_name=coin_read,
+                amount=amount,
+                kind=kind,
+                reason=reason,
+                inner_hash=inner_hash,
+                create_dt=create_dt,
+                transact_data=transact_data,
+                reward=reward_dc,
+                game=game_dc,
+            )
+        )
+    return results
+
+
 async def get_transaction_by_uni_id(
     conn: ProxiedConnection, uni_id: int
 ) -> Transaction | None:
@@ -349,7 +428,7 @@ async def get_transaction_by_uni_id(
             u.kind,
             u.reason,
             u.inner_hash,
-            u.create_dt,
+            u.created_dt,
             u.transact_data,
             rt.id AS reward_id,
             rt.reason AS reward_reason,
@@ -440,7 +519,7 @@ async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction
             u.kind,
             u.reason,
             u.inner_hash,
-            u.create_dt,
+            u.created_dt,
             u.transact_data,
             rt.id AS reward_id,
             rt.reason AS reward_reason,
@@ -515,6 +594,102 @@ async def get_transaction_by_tx(conn: ProxiedConnection, tx: str) -> Transaction
         reward=reward_dc,
         game=game_dc,
     )
+
+
+async def get_transactions_by_partial_tx(
+    conn: ProxiedConnection, partial_tx: str
+) -> list[Transaction]:
+    cur = await conn.execute(
+        """
+        SELECT
+            u.id,
+            u.src,
+            u.dst,
+            u.coin_id,
+            c.unique_name,
+            c.read_name,
+            u.amount,
+            u.kind,
+            u.reason,
+            u.inner_hash,
+            u.created_dt,
+            u.transact_data,
+            rt.id AS reward_id,
+            rt.reason AS reward_reason,
+            gt.id AS game_id,
+            gt.server_secret,
+            gt.client_secret,
+            gt.game_instance,
+            gt.user_win,
+            tc.tx
+        FROM transact_chain tc
+        INNER JOIN uni_transact u ON u.id = tc.transact_id
+        LEFT JOIN coin c ON c.id = u.coin_id
+        LEFT JOIN reward_transact rt ON rt.ref_id = u.id
+        LEFT JOIN game_transact gt ON gt.ref_id = u.id
+        WHERE tc.tx LIKE ?
+        """,
+        (f"{partial_tx}%",),
+    )
+    rows = await cur.fetchall()
+    results: list[Transaction] = []
+    for row in rows:
+        (
+            uid,
+            src,
+            dst,
+            coin_id,
+            coin_unique,
+            coin_read,
+            amount,
+            kind,
+            reason,
+            inner_hash,
+            create_dt,
+            transact_data,
+            reward_id,
+            reward_reason,
+            game_id,
+            server_secret,
+            client_secret,
+            game_instance,
+            user_win,
+            tx,
+        ) = row
+        reward_dc = (
+            Reward(id=reward_id, reason=reward_reason) if reward_id is not None else None
+        )
+        game_dc = (
+            Game(
+                id=game_id,
+                server_secret=server_secret,
+                client_secret=client_secret,
+                user_win=bool(user_win),
+                game_instance=game_instance,
+            )
+            if game_id is not None
+            else None
+        )
+        results.append(
+            Transaction(
+                id=uid,
+                tx=tx,
+                src=src,
+                dst=dst,
+                coin_id=coin_id,
+                coin_unique_name=coin_unique,
+                coin_read_name=coin_read,
+                amount=amount,
+                kind=kind,
+                reason=reason,
+                inner_hash=inner_hash,
+                create_dt=create_dt,
+                transact_data=transact_data,
+                reward=reward_dc,
+                game=game_dc,
+            )
+        )
+    return results
 
 
 async def get_transaction(conn: ProxiedConnection, id: str | int) -> Transaction | None:

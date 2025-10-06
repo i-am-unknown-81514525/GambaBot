@@ -29,6 +29,8 @@ async def get_user(
     except Exception:
         logger.error("Failed to decode JWT", exc_info=True)
         raise AuthError("Invalid token")
-    if not jwt_inner.get("user_id") or not isinstance(jwt_inner["user_id"], int):
+    if jwt_inner.get("user_id") is None or not isinstance(jwt_inner["user_id"], int):
+        print(jwt_inner)
         raise AuthError("Invalid token")
+    print(jwt_inner)
     return jwt_inner["user_id"]

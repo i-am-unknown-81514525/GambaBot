@@ -26,7 +26,7 @@ async def create_game_instance(conn: DB, game_id: str, secret: str) -> GameInsta
     hash = _sha3_512_hex(f"{game_id}::{secret}")
     _ = await conn.execute(
         """
-        INSERT INTO game_instance(game_id, game_secret, game_hash, us_used)
+        INSERT INTO game_instance(game_id, game_secret, game_hash, is_used)
         VALUES (?,?,?,?)
         """,
         (game_id, secret, hash, False),

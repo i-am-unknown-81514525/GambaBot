@@ -38,7 +38,7 @@ class CoinFlip(Cog):
                 game_data = await init_resp.json()
                 game_id = game_data["game_id"]
             if not client_secret:
-                client_secret = secrets.token_hex(32)
+                client_secret = secrets.token_hex(64)
             payload = {
                 "client_secret": client_secret,
                 "amount": amount,

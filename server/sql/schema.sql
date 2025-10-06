@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS game_transact(
     ref_id INT UNIQUE NULL REFERENCES uni_transact(id),
     server_secret TEXT UNIQUE NOT NULL,
     client_secret TEXT UNIQUE NOT NULL,
-    game_instance TEXT UNIQUE NOT NULL REFERENCES game_instance(id),
+    game_instance TEXT UNIQUE NOT NULL REFERENCES game_instance(game_id),
     transact_data TEXT GENERATED ALWAYS AS (
         game_instance || '--' ||server_secret || '--' || client_secret
     ),

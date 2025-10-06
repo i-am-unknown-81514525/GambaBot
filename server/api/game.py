@@ -19,7 +19,7 @@ from database.holder import (
     get_holder_coin_balance,
 )
 from database.transact import game_force_transfer, get_transaction_by_uni_id
-from database.user import get_user as get_db_user
+from database.user import get_user as get_db_user, user_exist
 
 from cryptography.hazmat.primitives.hashes import Hash, SHA3_512
 
@@ -69,8 +69,8 @@ class PlayResp:
 async def init_game(
     conn: Annotated[DB, Depends(get_tx_conn)],
 ) -> InitResp:
-    game_id = secrets.token_hex(512)
-    game_secret = secrets.token_hex(512)
+    game_id = secrets.token_hex(64)
+    game_secret = secrets.token_hex(64)
     dt = await create_game_instance(conn, game_id, game_secret)
     return InitResp(dt.game_id, dt.game_hash)
 
@@ -91,6 +91,7 @@ async def gamble_handler(
     req: PlayReq,
     server_secret: str,
     client_secret: str,
+    game_instance: str,
 ) -> Transaction:
     if user_win:
         tid = (
@@ -103,6 +104,7 @@ async def gamble_handler(
                 server_secret=server_secret,
                 client_secret=client_secret,
                 user_win=user_win,
+                game_instance=game_instance,
             )
         )[0]
     else:
@@ -115,6 +117,7 @@ async def gamble_handler(
                 server_secret=server_secret,
                 client_secret=client_secret,
                 user_win=user_win,
+                game_instance=game_instance,
             )
         )[0]
     transaction = await get_transaction_by_uni_id(conn, tid)
@@ -130,18 +133,20 @@ async def conflip_game(
     game_id: str,
     play_req: CoinFlipReq,
 ) -> PlayResp:
+    if not await user_exist(conn, user_id):
+        raise HTTPException(404, "User not found")
     instance = await _handle_game(conn, game_id)
     _ = await mark_game_instance_completed(conn, game_id)
     if (
-        not await get_holder_coin_balance(conn, user_id, play_req.coin_id)
-        >= play_req.amount
+        await get_holder_coin_balance(conn, (await get_db_user(conn, user_id)).holder_id, play_req.coin_id)
+        < play_req.amount
     ):
         raise HTTPException(403, "Attempt to gamble more than what you have")
     secret = generate_run_secret(instance.game_secret, play_req.client_secret)
     rnd = Random(secret)
     win = rnd.randint(0, 1) == 0
     transaction = await gamble_handler(
-        conn, win, user_id, play_req, instance.game_secret, play_req.client_secret
+        conn, win, user_id, play_req, instance.game_secret, play_req.client_secret, instance.game_id
     )
     return PlayResp(win, play_req.amount * (1 if win else -1), transaction)
 

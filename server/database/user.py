@@ -33,7 +33,6 @@ async def get_user(conn: ProxiedConnection, user_id: int) -> User:
             (user_id,),
         )
     ).fetchone()
-    await conn.commit()
     return User(
         id=row[0], holder_id=row[1], accounts=await get_raw_user_account(conn, row[0])
     )
@@ -61,5 +60,4 @@ async def create_user(conn: ProxiedConnection, user_id: int) -> User:
     await raw_force_transact(
         conn, 0, account_id, 0, 1000, f"Account creation user:{user_id}"
     )
-    await conn.commit()
     return await get_user(conn, user_id)

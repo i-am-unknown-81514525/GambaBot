@@ -61,8 +61,8 @@ class Transaction(Cog):
                     game_info = data['game']
                     result = "Win" if game_info['user_win'] else "Loss"
                     embed.add_field(name="Game Result", value=result, inline=True)
-                    embed.add_field(name="Server Secret", value=f"```{game_info['server_secret']}```", inline=False)
-                    embed.add_field(name="Client Secret", value=f"```{game_info['client_secret']}```", inline=False)
+                    embed.add_field(name="Server Secret", value=f"```{game_info['server_secret'][:1018]}```", inline=False)
+                    embed.add_field(name="Client Secret", value=f"```{game_info['client_secret'][:1018]}```", inline=False)
 
                 await interaction.followup.send(embed=embed)
 
