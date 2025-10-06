@@ -1,6 +1,8 @@
 # GambaBot
 Gamble! Gamble! Gamble everything with cryptographically verifiable fairness and that I definitiely didn't and cannot rig the game 
 
+Try it out [here](https://discord.com/oauth2/authorize?client_id=1424521785772212344)
+
 ### How it work
 This work by having the server pre-generate a secret for a game, and provide you the hash of the secret (so you can verify that I am not cheating by changing it), and you provide a client secret which the server and client secret is mixed as defined in the code that you can read. *If you implement it correctly, which for the UI, it doesn't actually show the server secret first although the API make it possible to do so*
 
@@ -19,4 +21,5 @@ INTERNAL_LINK=http://server:8000 # Or any other way the bot can send request to 
 2. Run `docker compose up -d --build`
 
 ### Video Demo
-TODO
+
+https://github.com/user-attachments/assets/afc191e4-4c10-4db1-b7bc-49666351d243
